@@ -1,0 +1,313 @@
+---
+title: "Abhishek HW3"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r}
+# This question should be answered using the Weekly data set, which is part of the ISLR package. This data is similar in nature to the Smarket data from this chapter’s lab, except that it contains 1,089 weekly returns for 21 years, from the beginning of 1990 to the end of 2010.
+# (a) Produce some numerical and graphical summaries of the Weekly data. Do there appear to be any patterns?
+
+library(ISLR)
+head(Weekly)
+summary(Weekly)
+nrow(Weekly)
+pairs(Weekly)
+# There is a pattern between Volume vs Year, Volume increases over time .
+```
+
+```{r}
+
+# (b) Use the full data set to perform a logistic regression with Direction as the response and the five lag variables plus Volume as predictors. Use the summary function to print the results. Do any of the predictors appear to be statistically significant? If so, which ones?
+
+log_fit = glm(Direction ~ . -Year -Today, data=Weekly, family = "binomial")
+summary(log_fit)
+# The only predictor with a p-value less than 0.05 is “Lag2”. Hence "Lag2"is the only predictor which is  statistically significant.
+
+```
+
+```{r}
+# (c) Compute the confusion matrix and performance measures (accuracy, error rate, sensitivity, specificity). Explain what the confusion matrix is telling you about the types of mistakes made by logistic regression. Does the error rate represent the performance of logistic regression in prediction? (hint: is it training error rate or test error rate?)
+
+log_prob = predict(log_fit, type="response")
+log_predict = rep("Down", 1089)
+log_predict[log_prob > 0.5] = "Up"
+conf_mat <- table(Weekly$Direction, log_predict)
+conf_mat
+
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (54 + 557)/(54 + 430 + 48 + 557) = 56.1%
+#Sensitivity = TP/(TP + FN) = 557/(557 + 48) = 92.06%
+#Specificity = TN/(TN + FP) = 54/(54 + 430) = 11.1%
+#The model predicts well for Up direction (92.06% of the time), but it predict poorly for the Down direction (11.1% of the time).
+
+```
+```{r}
+# (d) Now fit the logistic regression model using a training data period from 1990 to 2008, with Lag2 as the only predictor. Compute the confusion matrix and performance measures (accuracy, error rate, sensitivity, specificity) for the held out data (that is, the data from 2009 and 2010).
+
+Weekly_train = Weekly[Weekly$Year <= 2008,]
+Weekly_test = Weekly[Weekly$Year > 2008,]
+Weekly_test$Direction
+nrow(Weekly_train)
+nrow(Weekly_test)
+log_fit = glm(Direction ~ Lag2, data=Weekly_train, family = "binomial")
+log_prob = predict(log_fit, Weekly_test, type="response")
+log_predict = rep("Down", 104)
+log_predict[log_prob > 0.5] = "Up"
+conf_mat <- table(Weekly_test$Direction, log_predict)
+conf_mat
+
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (56 + 9)/(56 + 34 + 9 + 5) = 62.5%
+#Error rate = (1 - Accuracy) = 37.5%
+#Sensitivity = TP/(TP + FN) = 56/(56 + 5) = 91.8%
+#Specificity = TN/(TN + FP) = 9/(9 + 34) = 20.9%
+
+```
+
+```{r}
+# (e) Repeat (d) using LDA.
+library(MASS)
+lda_fit = lda(Direction ~ Lag2, data=Weekly_train)
+lda_pred = predict(lda_fit, Weekly_test)
+lda_pred$class
+conf_mat = table(Weekly_test$Direction, lda_pred$class)
+conf_mat
+#The model makes correct predictions for 62.5% of the test data. The results are pretty close to those obtained in the logistic regression model.
+
+
+```
+
+```{r}
+# (f) Repeat (d) using QDA.
+library(MASS)
+qda_fit = qda(Direction ~ Lag2, data=Weekly_train)
+qda_pred = predict(qda_fit, Weekly_test)
+qda_pred$class
+conf_mat = table(Weekly_test$Direction, qda_pred$class)
+conf_mat
+
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (61)/(61 + 0 + 0 + 43) = 58.6%
+#Sensitivity = TP/(TP + FN) = 61/(0 + 61) = 100%
+#Specificity = TN/(TN + FP) = 0/(0 + 43) = 0%
+# The model makes correct predictions for 58.6% of the test data. The model predicts well for Up direction (100% of the time), but it predicts poorly for the Down direction (0% of the time).
+
+```
+
+```{r}
+# (g) Repeat (d) using KNN with K = 1.
+library(class)
+knn_pred = knn(as.matrix(Weekly_train$Lag2), as.matrix(Weekly_test$Lag2), as.matrix(Weekly_train$Direction),  k = 1)
+table(Weekly_test$Direction, knn_pred)
+
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (32+21)/(21 + 22 + 32 + 29) = 53/104 = 50.9%
+#Sensitivity = TP/(TP + FN) = 32/(29 + 32) = 52.45%
+#Specificity = TN/(TN + FP) = 21/(21 + 22) = 48.8%
+# The model makes correct predictions for 50.9% of the test data. The model predicts right 52.45% of the time for the Up Direction and predicts right 48.8% of the time for the Down direction.
+
+```
+
+```{r}
+# (h) Which of these methods appears to provide the best results on this data?
+
+# Accuracy with Logistic Regression : 62.5%
+# Accuracy with LDA : 62.5%
+# Accuracy with QDA : 58.6%
+# Accuracy with KNN : 52.45%
+# Logistic regression and LDA have the maximum Accuracy.
+
+```
+
+```{r}
+# (i) Experiment with different combinations of predictors, including possible transformations and interactions, for each of the methods. Report the variables, method, and associated confusion matrix that appears to provide the best results on the held out data. Note that you should also experiment with values for K in the KNN classifiers.
+
+# Logistic Regression
+log_fit = glm(Direction ~ Lag2:Lag1, data=Weekly_train, family = "binomial")
+log_prob = predict(log_fit, Weekly_test, type="response")
+log_predict = rep("Down", 104)
+log_predict[log_prob > 0.5] = "Up"
+table(Weekly_test$Direction, log_predict)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (1+60)/(1 + 60 + 1 + 42) = 61/104 = 58.6%
+
+
+# LDA
+lda_fit = lda(Direction ~ Lag2:Lag1, data=Weekly_train)
+lda_pred = predict(lda_fit, Weekly_test)
+lda_pred$class
+conf_mat = table(Weekly_test$Direction, lda_pred$class)
+conf_mat
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (0+60)/(0 + 60 + 1 + 43) = 60/104 = 57.7%
+
+
+# QDA
+qda_fit = qda(Direction ~ Lag2 + sqrt(abs(Lag2)), data=Weekly_train)
+qda_pred = predict(qda_fit, Weekly_test)
+qda_pred$class
+conf_mat = table(Weekly_test$Direction, qda_pred$class)
+conf_mat
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (48+12)/(48 + 12 + 13 + 31) = 60/104 = 57.7%
+
+# K = 5.
+library(class)
+knn_pred = knn(as.matrix(Weekly_train$Lag2), as.matrix(Weekly_test$Lag2), as.matrix(Weekly_train$Direction),  k = 5)
+table(Weekly_test$Direction, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (40+16)/(40 + 16 + 27 + 21) = 56/104 = 53.8%
+
+# K = 10
+library(class)
+knn_pred = knn(as.matrix(Weekly_train$Lag2), as.matrix(Weekly_test$Lag2), as.matrix(Weekly_train$Direction),  k = 10)
+table(Weekly_test$Direction, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (17+42)/(17 + 42 + 19 + 26) = 59/104 = 56.7%
+
+# K = 15
+library(class)
+knn_pred = knn(as.matrix(Weekly_train$Lag2), as.matrix(Weekly_test$Lag2), as.matrix(Weekly_train$Direction),  k = 15)
+table(Weekly_test$Direction, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (20+41)/(20 + 41 + 20 + 23) = 61/104 = 58.6%
+
+
+# Among the experiments done above, logistic regression with interaction term seems to perform better. But if we go back, the old model for logistic regression and LDA gave us more accuracy.
+
+```
+
+
+```{r}
+# 2) Perform ROC analysis and present the results for logistic regression and LDA used for the best model chosen in Question 1(i).
+
+# Logistic Regression 
+
+library(pROC)
+log_fit = glm(Direction ~ . -Year -Today, data=Weekly, family = "binomial")
+log_prob = predict(log_fit, type="response")
+a = roc(Direction~log_prob, data=Weekly)
+plot(a, legacy.axes=T)
+
+# Area under the curve is around 0.53 and it’s not a good fit.
+
+# LDA
+library(ISLR)
+attach(Weekly)
+library(MASS)
+LDA.fit = lda(Direction~Lag1+Lag2+Lag4,data=Weekly)
+LDA.pred0 = predict(LDA.fit,type="response")
+LDA.pred = LDA.pred0$posterior[,2]
+roc.curve=function(s,print=FALSE){
+  Ps=(LDA.pred>s)*1
+  FP=sum((Ps==1)*(Direction=="Down"))/sum(Direction=="Down")
+  TP=sum((Ps==1)*(Direction=="Up"))/sum(Direction=="Up")
+  if(print==TRUE){
+    print(table(Observed=Direction,Predicted=Ps))
+  }
+  vect=c(FP,TP)
+  names(vect)=c("FPR","TPR")
+  return(vect)
+}
+threshold=0.5
+roc.curve(threshold,print=TRUE)
+ROC.curve=Vectorize(roc.curve)
+M.ROC=ROC.curve(seq(0,1,by=0.01))
+plot(M.ROC[1,],M.ROC[2,],col="grey",lwd=2,type="l"
+     ,xlab="False
+     positive rate"
+     ,ylab="True positive rate")
+
+# Area under the curve is around 0.5 and it’s a bad fit. This is inferior to the Logistic regression.
+
+```
+
+
+```{r}
+# Q3 In this problem, you will develop a model to predict whether a given car gets high or low gas mileage based on the Auto data set.
+
+# (a) Create a binary variable, mpg01, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median. You can compute the median using the median( )
+
+library(ISLR)
+summary(Auto) 
+attach(Auto)
+mpg01 = rep(0, length(mpg))
+mpg01[mpg > median(mpg)] = 1
+Auto = data.frame(Auto, mpg01)
+
+
+# (b) Explore the data graphically in order to investigate the association between mpg01 and the other features. Which of the other features seem most likely to be useful in predicting mpg01? Scatterplots and Boxplots may be useful tools to answer this question. Describe your findings.
+
+pairs(Auto)
+par(mfrow=c(2,3))
+boxplot(cylinders ~ mpg01, data = Auto, main = "Cylinders vs mpg01")
+boxplot(displacement ~ mpg01, data = Auto, main = "displacement vs mpg01")
+boxplot(horsepower ~ mpg01, data = Auto, main = "horsepower vs mpg01")
+boxplot(weight ~ mpg01, data = Auto, main = "weight vs mpg01")
+boxplot(acceleration ~ mpg01, data = Auto, main = "acceleration vs mpg01")
+boxplot(year ~ mpg01, data = Auto, main = "year vs mpg01")
+
+# There exists some association between “mpg01” and “cylinders”, “weight”, “displacement” and “horsepower”.
+
+# (c) Split the data into a training set and a test set.
+
+rows <- sample(x=nrow(Auto), size=.75*nrow(Auto))
+auto_trainset <- Auto[rows, ]
+auto_testset <- Auto[-rows, ]
+
+```
+
+```{r}
+
+# (d) Perform LDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+library(MASS)
+lda_fit <- lda(mpg01 ~ cylinders + weight + displacement + horsepower, data=auto_trainset)
+lda_pred <- predict(lda_fit, auto_testset)
+table(auto_testset$mpg01, lda_pred$class)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (43+48)/(43 + 2 + 5 + 48) = 91/98 = 92.8%
+
+
+```
+
+```{r}
+# (e) Perform QDA on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+qda_fit <- qda(mpg01 ~ cylinders + weight + displacement + horsepower, data=auto_trainset)
+qda_pred <- predict(qda_fit, auto_testset)
+table(auto_testset$mpg01, qda_pred$class)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (45+47)/(45 + 3 + 3 + 47) = 92/98 = 93.8%
+
+```
+```{r}
+# (f) Perform logistic regression on the training data in order to predict mpg01 using the variables that seemed most associated with mpg01 in (b). What is the test error of the model obtained?
+
+log_fit <- glm(mpg01 ~ cylinders + weight + displacement + horsepower, data=auto_trainset, family="binomial")
+log_prob = predict(log_fit, auto_testset, type="response")
+log_predict = rep(0, length(auto_testset$mpg))
+log_predict[log_prob > 0.5] = 1
+table(auto_testset$mpg01, log_predict)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (45+45)/(45 + 3 + 5 + 45) = 90/98 = 91.8%
+
+```
+
+```{r}
+# (g) Perform KNN on the training data, with several values of K, in order to predict mpg01. Use only the variables that seemed most associated with mpg01 in (b). What test errors do you obtain? Which value of K seems to perform the best on this data set?
+
+library(class)
+knn_pred = knn(as.matrix(auto_trainset[,2:5]), as.matrix(auto_testset[,2:5]), as.matrix(auto_trainset$mpg01), k = 1)
+table(auto_testset$mpg01, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (44+41)/(41 + 7 + 6 + 44) = 85/98 = 86.7%
+
+knn_pred = knn(as.matrix(auto_trainset[,2:5]), as.matrix(auto_testset[,2:5]), as.matrix(auto_trainset$mpg01), k = 3)
+table(auto_testset$mpg01, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (44+46)/(44 + 4+ 4 + 46) = 90/98 = 91.8%
+
+knn_pred = knn(as.matrix(auto_trainset[,2:5]), as.matrix(auto_testset[,2:5]), as.matrix(auto_trainset$mpg01), k = 5)
+table(auto_testset$mpg01, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (44+44)/(44 + 4 + 6 + 44) = 88/98 = 89.8%
+
+knn_pred = knn(as.matrix(auto_trainset[,2:5]), as.matrix(auto_testset[,2:5]), as.matrix(auto_trainset$mpg01), k = 7)
+table(auto_testset$mpg01, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (45+43)/(43 + 5 + 5 + 45) = 88/98 = 89.8%
+
+knn_pred = knn(as.matrix(auto_trainset[,2:5]), as.matrix(auto_testset[,2:5]), as.matrix(auto_trainset$mpg01), k = 10)
+table(auto_testset$mpg01, knn_pred)
+#Accuracy = (TP + TN)/(TP + FN + FP + TN) = (44+42)/(42 + 6 + 6 + 44) = 86/98 = 87.7%
+
+# Accuracy for K=1, 3, 5, 7 and 10 are 86.7%, 91.8%, 89.8, 89.8, and 87.7 respectively. Of these K=3 performs the best.
+
+```
+

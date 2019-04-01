@@ -1,0 +1,308 @@
+---
+title: "Untitled"
+output:
+  word_document: default
+  pdf_document: default
+---
+```{r}
+
+# In this question, we will predict the number of applications received (Apps) using the other variables in the College data set (ISLR package).
+
+
+library(ISLR)
+library(leaps)
+names(College)
+dim(College)
+bss_fit <- regsubsets(Apps~., data = College, nvmax=17)
+bss_summary = summary(bss_fit)
+```
+
+```{r}
+
+# (a) Perform best subset selection to the data. What is the best model obtained according to Cp, BIC and adjusted R2? Show some plots to provide evidence for your answer, and report the coefficients of the best model.
+
+
+bss_summary$rsq
+par(mfrow =c(2,2))
+
+#1
+plot(bss_summary$cp ,xlab =" Number of Variables ",ylab="Cp", type="l")
+points(which.min (bss_summary$cp), bss_summary$cp [which.min (bss_summary$cp)], col ="red",cex =2, pch =20)
+
+#2
+plot(bss_summary$bic ,xlab=" Number of Variables ",ylab=" BIC", type="l")
+points (which.min (bss_summary$bic ), bss_summary$bic [which.min (bss_summary$bic )], col =" red",cex =2, pch =20)
+
+#3
+plot(bss_summary$adjr2 ,xlab =" Number of Variables ", ylab=" Adjusted RSq",type="l")
+points (which.max(bss_summary$adjr2), bss_summary$adjr2[which.max(bss_summary$adjr2)], col ="red",cex =2, pch =20)
+
+coef(bss_fit , which.min (bss_summary$bic ))
+
+```
+
+```{r}
+# (b) Repeat (a) using forward stepwise selection and backwards stepwise selection. How does your answer compare to the results in (a)?
+
+#Forward stepwise selection
+for_ss <- regsubsets(Apps~., data = College, nvmax=17, method = "forward")
+for_ss_summary = summary(for_ss)
+
+par(mfrow =c(2,2))
+
+#1
+plot(for_ss_summary$cp ,xlab =" Number of Variables ",ylab="Cp", type="l")
+points(which.min (for_ss_summary$cp), for_ss_summary$cp [which.min (for_ss_summary$cp)], col ="red",cex =2, pch =20)
+
+#2
+plot(for_ss_summary$bic ,xlab=" Number of Variables ",ylab=" BIC", type="l")
+points (which.min (for_ss_summary$bic ), for_ss_summary$bic [which.min (for_ss_summary$bic )], col =" red",cex =2, pch =20)
+
+#3
+plot(for_ss_summary$adjr2 ,xlab =" Number of Variables ", ylab=" Adjusted RSq",type="l")
+points (which.max(for_ss_summary$adjr2), for_ss_summary$adjr2[which.max(for_ss_summary$adjr2)], col ="red",cex =2, pch =20)
+
+coef(for_ss , which.min (for_ss_summary$bic ))
+
+```
+
+```{r}
+
+#Backward stepwise selection
+
+back_ss <- regsubsets(Apps~., data = College, nvmax=17, method = "backward")
+back_ss_summary = summary(back_ss)
+
+par(mfrow =c(2,2))
+
+#1
+plot(back_ss_summary$cp ,xlab =" Number of Variables ",ylab="Cp", type="l")
+points(which.min (back_ss_summary$cp), back_ss_summary$cp [which.min (back_ss_summary$cp)], col ="red",cex =2, pch =20)
+
+#2
+plot(back_ss_summary$bic ,xlab=" Number of Variables ",ylab=" BIC", type="l")
+points (which.min (back_ss_summary$bic ), back_ss_summary$bic [which.min (back_ss_summary$bic )], col =" red",cex =2, pch =20)
+
+#3
+plot(back_ss_summary$adjr2 ,xlab =" Number of Variables ", ylab=" Adjusted RSq",type="l")
+points (which.max(back_ss_summary$adjr2), back_ss_summary$adjr2[which.max(back_ss_summary$adjr2)], col ="red",cex =2, pch =20)
+
+
+coef(back_ss , which.min (back_ss_summary$bic ))
+
+```
+
+```{r}
+# (c) Fit a lasso model on the data. Use cross-validation to select the optimal value of lambda. Create plots of the cross-validation error as a function of . Report the resulting coefficient estimates.
+
+library(glmnet)
+x = model.matrix(Apps~.,College)[,-1]
+y = College$Apps
+grid = 10^seq (10,-2, length =100)
+lasso.mod = glmnet(x,y,alpha =1, lambda =grid)
+dim(coef(lasso.mod))
+
+cv.out = cv.glmnet(x,y,alpha =1)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+
+predict(lasso.mod,s=bestlam,type="coefficients")[1:18,]
+
+```
+
+
+
+```{r}
+# (d) Fit a ridge regression model on the data. Use cross-validation to select the optimal value of lambda. Create plots of the cross-validation error as a function of lambda. Report the resulting coefficient estimates.
+
+library(glmnet)
+x=model.matrix(Apps~.,College)[,-1]
+y=College$Apps
+grid =10^seq (10,-2, length =100)
+ridge.mod = glmnet(x,y,alpha =0, lambda =grid)
+coef(ridge.mod)
+
+cv.out = cv.glmnet(x,y,alpha =0)
+plot(cv.out)
+bestlam =cv.out$lambda.min
+bestlam
+
+predict(ridge.mod,s=bestlam,type="coefficients")[1:18,]
+
+```
+
+```{r}
+# (e) Now split the data set into a training set and a test set.
+# i. Fit the best models obtained in the best subset selection (according to Cp, BIC or adjusted R2) to the training set, and report the test error obtained.
+
+set.seed(1)
+train= sample(c(TRUE,FALSE), nrow(College), rep=TRUE)
+test=(!train)
+
+regfit.best = regsubsets(Apps~., data=College[train,], nvmax=18)
+regfit.summary = summary(regfit.best)
+
+par(mfrow =c(2,2))
+
+#1
+plot(regfit.summary$cp ,xlab =" Number of Variables ",ylab="Cp", type="l")
+points(which.min (regfit.summary$cp), regfit.summary$cp [which.min (regfit.summary$cp)], col ="red",cex =2, pch =20)
+
+#2
+plot(regfit.summary$bic ,xlab=" Number of Variables ",ylab=" BIC", type="l")
+points (which.min (regfit.summary$bic ), regfit.summary$bic [which.min (regfit.summary$bic )], col =" red",cex =2, pch =20)
+
+#3
+plot(regfit.summary$adjr2 ,xlab =" Number of Variables ", ylab=" Adjusted RSq",type="l")
+points (which.max(regfit.summary$adjr2), regfit.summary$adjr2[which.max(regfit.summary$adjr2)], col ="red",cex =2, pch =20)
+
+#building an "X" matrix from test data
+test.mat = model.matrix(Apps~.,data=College[test,])
+
+coefi=coef(regfit.best,id=which.min (regfit.summary$bic))
+pred=test.mat[,names(coefi)]%*%coefi
+mean((College$Apps[test]-pred)^2)
+
+```
+
+```{r}
+# ii. Fit a lasso model to the training set, with lambda chosen by cross validation. Report the test error obtained.
+
+library(glmnet)
+set.seed (1)
+lasso.mod =glmnet (x[train ,],y[train],alpha =1, lambda =grid)
+cv.out =cv.glmnet (x[train ,],y[train],alpha =1)
+bestlam = cv.out$lambda.min
+lasso.pred = predict (lasso.mod ,s=bestlam ,newx=x[test ,])
+mean(( lasso.pred - y[test])^2)
+
+```
+
+```{r}
+# iii. Fit a ridge regression model to the training set, with  chosen by cross validation. Report the test error obtained.
+
+ridge.mod = glmnet(x[train,], y[train],alpha =0, lambda =grid)
+ridge.pred = predict(ridge.mod ,s=4 , newx = x[test ,])
+mean(( ridge.pred -y[test])^2)
+
+```
+
+```{r}
+# iv. Compare the test errors obtained in the above analysis (i-iii) and determine the optimal model.
+
+# The following are the test errors for the above three models : 
+# best subset selection - 1635683
+# lasso model - 1612366
+# ridge model - 1547703
+# Ridge regression model is the optimal model. 
+
+```
+
+```{r}
+# In the lab, a classification tree was applied to the Carseats data set after converting Sales into a binary response variable. This question will seek to predict Sales using regression trees and related approaches, treating the response as a quantitative variable (that is, without the conversion).
+# (a) Split the data set into a training set and a test set.
+
+library(ISLR)
+set.seed(1)
+train <- sample(1:nrow(Carseats), nrow(Carseats) / 2)
+Carseats_train <- Carseats[train, ]
+Carseats_test <- Carseats[-train, ]
+
+```
+
+```{r}
+# (b) Fit a regression tree to the training set. Plot the tree, and interpret the results. Then compute the test MSE.
+
+library(tree)
+tree_carseats <- tree(Sales ~ ., data = Carseats_train)
+summary(tree_carseats)
+
+plot(tree_carseats)
+text(tree_carseats, pretty = 0)
+
+yhat <- predict(tree_carseats, Carseats_test)
+mean((yhat - Carseats_test$Sales)^2)
+
+```
+
+```{r}
+# (c) Prune the tree obtained in (b). Use cross validation to determine the optimal level of tree complexity. Plot the pruned tree and interpret the results. Compute the test MSE of the pruned tree. Does pruning improve the test error?
+
+cv_carseats <- cv.tree(tree_carseats)
+plot(cv_carseats$size, cv_carseats$dev, type = "b")
+tree_min <- which.min(cv_carseats$dev)
+points(tree_min, cv_carseats$dev[tree_min], col = "red", cex = 2, pch = 20)
+
+prune_carseats <- prune.tree(tree_carseats, best = 8)
+plot(prune_carseats)
+text(prune_carseats, pretty = 0)
+
+```
+
+```{r}
+##(d) Use the bagging approach to analyze the data. What test MSE do you obtain? Determine which variables are most important.
+
+library(randomForest)
+bag.carseats <- randomForest(Sales ~ ., data = Carseats_train, mtry = 10, ntree = 500)
+yhat.bag <- predict(bag.carseats, newdata = Carseats_test)
+mean((yhat.bag - Carseats_test$Sales)^2)
+
+importance(bag.carseats)
+# We may conclude that “Price” and “ShelveLoc” are the two most important variables.
+```
+
+```{r}
+# (e) Use random forests to analyze the data. What test MSE do you obtain? Determine which variables are most important.
+
+rf.carseats <- randomForest(Sales ~ ., data = Carseats_train, mtry = 3, ntree = 500, importance = TRUE)
+yhat.rf <- predict(rf.carseats, newdata = Carseats_test)
+mean((yhat.rf - Carseats_test$Sales)^2)
+
+importance(rf.carseats)
+
+# We may conclude that, in this case also, “Price” and “ShelveLoc” are the two most important variables.
+
+
+```
+
+```{r}
+library (MASS)
+library (randomForest)
+set.seed (100)
+train = sample (1: nrow(Boston), nrow(Boston )/2)
+x_train = Boston[train, -14]
+x_test = Boston[-train, -14]
+y_train = Boston[train, 14]
+y_test = Boston[-train, 14]
+test_error1 = rep(0,13)
+
+for (i in 1:13){ 
+bag.boston = randomForest(x_train, y_train, mtry= i, ntree =100, importance =TRUE)
+yhat.bag = predict(bag.boston, newdata = Boston[-train,])
+test_error1[i] = mean(( yhat.bag - y_test)^2)
+}
+
+test_error1
+mtry = 1:13
+plot(mtry, test_error1, xlab =" mtry ", ylab=" error rate",type="l")
+
+```
+
+
+```{r}
+
+test_error2 = rep(0,196)
+for (i in 5:200){ 
+bag.boston = randomForest(medv~., data=Boston[train,] , mtry= 6, ntree = i , importance =TRUE)
+yhat.bag = predict (bag.boston, newdata = Boston[-train,])
+test_error2[i-4] = mean(( yhat.bag - y_test)^2)
+}
+
+ntree = 5:200
+plot(ntree, test_error2, xlab = " ntree ", ylab=" error rate",type="l")
+
+```
+
+
+

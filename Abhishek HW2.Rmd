@@ -1,0 +1,184 @@
+---
+title: "Abhishek HW2"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r}
+# (a) Perform a simple linear regression with mpg as the response and horsepower as the predictor. Comment on the output.
+
+library(ISLR)
+head(Auto)
+
+fit = lm(mpg ~ horsepower, Auto)
+summary(fit)
+
+# Is there a relationship between the predictor and the response?
+# Yes. The p-value corresponding to the F-statistic is very low, indicating a clear evidence of a relationship between mpg and horsepower.
+
+# How strong is the relationship between the predictor and the response?
+# Strong evidence of relationship, R2 statistic shows the percentage of variability in the response that is explained by the predictors. The predictors explain almost 60% of the variance in mpg.
+
+# Is the relationship between the predictor and the response positive or negative?
+# Negative, since the coefficient has a negative value.
+
+# How to interpret the estimate of the slope?
+# If the horsepower increases by 1 unit, then mpg decreases by 0.16 unit.
+
+# What is the predicted mpg associated with a horsepower of 98? What are the associated 95% confidence and prediction intervals?
+predict(fit, data.frame(horsepower = 98), interval = "confidence")
+predict(fit, data.frame(horsepower = 98), interval = "prediction")
+# 95% confidence interval is [23.97,24.96]
+# 95% prediction interval is [14.8,34.12]
+
+
+# (b) Plot the response and the predictor. Display the least squares regression line in the plot.
+
+plot(Auto$horsepower, Auto$mpg) 
+abline(fit, col = "red")
+
+# (c) Produce the diagnostic plots of the least squares regression fit. Comment on each plot.
+par(mfrow=c(2,2))
+plot(fit, which=1)
+plot(fit, which=2)
+plot(fit, which=3)
+plot(fit, which=5)
+# The Residuals vs Fitted graph has a U-shape, thus the relationship between predictors and response is nonlinear. 
+# The Residuals vs Fitted graph, it does not show heteroscedasticity.
+# The Scale-Location graph indicates that there are outliers.
+# The Residuals vs Leverage graph shows that there are many high leverage points.
+
+#log transformation
+log_horsepower = log(Auto$horsepower)
+log_fit = lm(mpg ~ log_horsepower, Auto)
+plot(log_horsepower, Auto$mpg)
+abline(log_fit, col = "red")
+summary(log_fit)
+predict(log_fit, data.frame(log_horsepower = 98), interval = "confidence")
+predict(log_fit, data.frame(log_horsepower = 98), interval = "prediction")
+par(mfrow=c(2,2))
+plot(fit, which=1)
+plot(fit, which=2)
+plot(fit, which=3)
+plot(fit, which=5)
+# R2 statistic is 66.8% and hence is a better fit compared to the model without transformation. 
+
+#Square-root transformation
+sqrt_horsepower = sqrt(Auto$horsepower)
+sqrt_fit = lm(mpg ~ sqrt_horsepower, Auto)
+plot(sqrt_horsepower, Auto$mpg)
+abline(sqrt_fit, col = "red")
+summary(sqrt_fit)
+predict(sqrt_fit, data.frame(sqrt_horsepower = 98), interval = "confidence")
+predict(sqrt_fit, data.frame(sqrt_horsepower = 98), interval = "prediction")
+par(mfrow=c(2,2))
+plot(fit, which=1)
+plot(fit, which=2)
+plot(fit, which=3)
+plot(fit, which=5)
+# R2 statistic is 64.3% and hence is a better fit compared to the model without transformation.
+
+#Square transformation
+square_horsepower = (Auto$horsepower)^2
+square_fit = lm(mpg ~ square_horsepower, Auto)
+plot(square_horsepower, Auto$mpg)
+abline(square_fit, col = "red")
+summary(square_fit)
+predict(square_fit, data.frame(square_horsepower = 98), interval = "confidence")
+predict(square_fit, data.frame(square_horsepower = 98), interval = "prediction")
+par(mfrow=c(2,2))
+plot(fit, which=1)
+plot(fit, which=2)
+plot(fit, which=3)
+plot(fit, which=5)
+# R2 statistic is 50.7% and hence is not a better fit compared to the model without transformation.
+
+```
+
+```{r}
+# (a) Produce a scatterplot matrix which includes all of the variables in the data set. Which predictors appear to have an association with the response?
+head(Auto)
+pairs(Auto)
+# mpg vs horsepower, mpg vs weight, dispacement vs weight, weight vs horsepower, weight vs mpg are correlated.
+
+# (b) Compute the matrix of correlations between the variables (using the function cor()). You will need to exclude the name variable, which is qualitative.
+cor(Auto[,1:8])
+
+# (c) Perform a multiple linear regression with mpg as the response and all other variables except name as the predictors. Comment on the output. For example,
+fit = lm(mpg ~ .-name, data=Auto)
+summary(fit)
+
+# i) Is there a relationship between the predictors and the response?
+# Yes, A large F-statistic and the corresponding small p-value indicates that there is a relationship between .
+
+# ii) Which predictors appear to have a statiscally significant relationship to the response?
+# Displacement, Weight, Year and Origin.
+
+# iii) What does the coefficient for the year variable suggest?
+# For each additional year, more 0.75 miles per galon is possible.
+
+# (d) Produce diagnostic plots of the linear regression fit. Comment on each plot.
+par(mfrow=c(2,2))
+plot(fit, which=1)
+plot(fit, which=2)
+plot(fit, which=3)
+plot(fit, which=5)
+
+# The Residuals vs Fitted graph does not have a U-shape curve hence the possibility of non-linear relationship can be eliminated .
+# The Residuals vs Fitted graph takes a funnel shape indicates non-constant variance of errors.
+# The Scale-Location graph shows that there are outliers. 
+# The Residuals vc Leverage graph showa that observation 14 is a high leverage point.
+
+# (e) Is there serious collinearity problem in the model? Which predictors are collinear?
+library(car)
+vif(fit)
+# A value of VIF>5 indicates serious collinearity. The predictors cylinders, displacement, horsepower and weight contrubute to collinearity problem.
+# COllinearity reduces the accuracy of the estimates of the regressioN coefficients.
+
+# (f) Fit linear regression models with interactions. Are any interactions statistically significant?
+fit_inter = lm(mpg ~ (.-name)*(.-name), data=Auto)
+summary(fit_inter)
+# The p value for acceleration:origin interaction is less than 0.05 and hence this interaction is statistically significant.
+
+
+```
+
+```{r}
+head(Carseats)
+fit_1 = lm(Sales ~ Price + Urban + US, data=Carseats)
+summary(fit_1)
+
+# (b) Provide an interpretation of each coefficient in the model
+# The UrbanYes has a very high p-value hence this predictor can be neglected. 
+# The USYes has a very low p-value hence this predictor cannot be negelected. An additional 1.2 thousands sales units is assigned for a US location. 
+# The Price has a negative relationship with Sales
+
+# (c) Write out the model in equation form.
+# Sales = 13.043-0.055∗Price-0.022∗UrbanYes+1.2∗USYes
+
+# (d) For which of the predictors can you reject the null hypothesis 𝐻0: 𝛽𝑗=0 ?
+# We can reject the null hypothesis for Price & US predictors .
+
+# (e) On the basis of your answer to the previous question, fit a smaller model that only uses the predictors for which there is evidence of association with the response.
+fit_2 = lm(Sales ~ Price + US, data=Carseats)
+summary(fit_2)
+
+# (f) How well do the models in (a) and (e) fit the data?
+summary(fit_1)
+summary(fit_2)
+# The R2 statistic is same for both fits. The F-statistic is large for the second fit and hence is a superior fit.
+
+# (g) Is there evidence of outliers or high leverage observations in the model from (e)?
+par(mfrow=c(2,2))
+plot(fit_2, which=1)
+plot(fit_2, which=2)
+plot(fit_2, which=3)
+plot(fit_2, which=5)
+# Scale-Location graph does not show any highlighted outlier. 
+# Residuals vs Leverage graph shows a very high leverage observation.
+
+
+
+```
+

@@ -1,0 +1,199 @@
+---
+title: "Abhishek HW4"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r}
+# This question should be answered using the Default data set. In Chapter 4 on classification, we used logistic regression to predict the probability of default using income and balance. Now we will estimate the test error of this logistic regression model using the validation set approach. Do not forget to set a random seed before beginning your analysis.
+
+# (a) Fit a logistic regression model that predicts default using income and balance.
+
+library(ISLR)
+attach(Default)
+head(Default)
+set.seed(1)
+log_fit <- glm(default ~ income + balance, data = Default, family = "binomial")
+summary(log_fit)
+```
+
+```{r}
+# (b) Using the validation set approach, estimate the test error of this model. You need to perform the following steps:
+
+# i. Split the sample set into a training set and a validation set.
+
+indices <- sample(nrow(Default),nrow(Default)*0.5)
+train <- Default[indices,]
+test <- Default[-indices,]
+
+# ii. Fit a logistic regression model using only the training data set.
+
+log_fit <- glm(default ~ income + balance,family = binomial,data=train)
+
+# iii. Obtain a prediction of default status for each individual in the validation set using a threshold of 0.5.
+
+log_proba <- predict(log_fit, test, type="response")
+log_predict <- ifelse(log_proba > 0.5,"Yes","No")
+
+
+# iv. Compute the validation set error, which is the fraction of the observations in the validation set that are misclassified.
+
+table(test$default, log_predict, dnn=c("Actual","Predicted"))
+mean(log_predict != test$default)
+
+```
+
+```{r}
+# (c) Repeat the process in (b) three times, using three different splits of the observations into a training set and a validation set. Comment on the results obtained.
+
+indices <- sample(nrow(Default),nrow(Default)*0.9)
+train <- Default[indices,]
+test <- Default[-indices,]
+log_fit <- glm(default ~ income + balance,family = binomial,data=train)
+log_proba <- predict(log_fit, test, type="response")
+log_predict <- ifelse(log_proba > 0.5,"Yes","No")
+table(test$default, log_predict, dnn=c("Actual","Predicted"))
+mean(log_predict != test$default)
+
+
+indices <- sample(nrow(Default),nrow(Default)*0.7)
+train <- Default[indices,]
+test <- Default[-indices,]
+log_fit <- glm(default ~ income + balance,family = binomial,data=train)
+log_proba <- predict(log_fit, test, type="response")
+log_predict <- ifelse(log_proba > 0.5,"Yes","No")
+table(test$default, log_predict, dnn=c("Actual","Predicted"))
+mean(log_predict != test$default)
+
+
+indices <- sample(nrow(Default),nrow(Default)*0.4)
+train <- Default[indices,]
+test <- Default[-indices,]
+log_fit <- glm(default ~ income + balance,family = binomial,data=train)
+log_proba <- predict(log_fit, test, type="response")
+log_predict <- ifelse(log_proba > 0.5,"Yes","No")
+table(test$default, log_predict, dnn=c("Actual","Predicted"))
+mean(log_predict != test$default)
+
+# We see that the test error rate's are variable. 
+
+```
+
+```{r}
+# (d) Consider another logistic regression model that predicts default using income, balance and student (qualitative). Estimate the test error for this model using the validation set approach. Does including the qualitative variable student lead to a reduction of test error rate?
+
+indices <- sample(nrow(Default), nrow(Default)*0.5)
+train <- Default[indices,]
+test <- Default[-indices,]
+log_fit <- glm(default ~ income + balance + student, family = binomial, data=train)
+log_proba <- predict(log_fit, test, type="response")
+log_predict <- ifelse(log_proba > 0.5,"Yes","No")
+table(test$default, log_predict, dnn=c("Actual","Predicted"))
+mean(log_predict != test$default)
+
+# The addition of the “student” dummy variable doesn't lead to a reduction in the test error rate.
+
+```
+
+```{r}
+# This question requires performing cross validation on a simulated data set. 
+# (a) Generate a simulated data set as follows:
+#      set.seed(1)
+#      x=rnorm(200)
+#      y=x-2*x^2+rnorm(200)
+# In this data set, what is 𝑛 and what is 𝑝? Write out the model used to generate the data in equation form (i.e., the true model of the data).
+
+set.seed(1)
+x = rnorm(200)
+y = x-2*x^2+rnorm(200)
+
+# n=200 and p=2, the model used is Y = X − 2X2 + εrror.
+
+```
+
+```{r}
+# (b) Create a scatter plot of 𝑌 vs 𝑋. Comment on what you find.
+
+plot(x, y)
+# There is a curved(non-linear) relationship.
+```
+
+```{r}
+# (c) Consider the following four models for the data set:
+#         i. 𝑌 = 𝛽0 + 𝛽1𝑋 + 𝜖
+#        ii. 𝑌 = 𝛽0 + 𝛽1𝑋 + 𝛽2𝑋2 + 𝜖
+#       iii. 𝑌 = 𝛽0 + 𝛽1𝑋 + 𝛽2𝑋2 + 𝛽3𝑋3 + 𝜖
+#        iv. 𝑌 = 𝛽0 + 𝛽1𝑋 + 𝛽2𝑋2 + 𝛽3𝑋3 + 𝛽4𝑋4 + 𝜖
+#  Compute the LOOCV errors that result from fitting these models.
+
+library(boot)
+set.seed(1)
+data <- data.frame(x, y)
+cv_error = rep(0,4)
+for (i in 1:4){
+glm_fit = glm(y~poly(x,i), data=data)
+cv_error[i] = cv.glm(data, glm_fit)$delta[1]
+}
+cv_error
+
+```
+
+```{r}
+# (d) Repeat (c) using another random seed, and report your results. Are your results the same as what you got in (c)? Why?
+
+library(boot)
+set.seed(20)
+data <- data.frame(x, y)
+cv_error = rep(0,4)
+for (i in 1:4){
+glm_fit = glm(y~poly(x,i), data=data)
+cv_error[i] = cv.glm(data, glm_fit)$delta[1]
+}
+cv_error
+
+# The results above are identical to the results obtained in (c). While performing LOOCV multiple times will always yield the same results, because we split based on one observation each time.
+
+```
+
+```{r}
+# (e) Which of the models in (c) has the smallest LOOCV error? Is this what you expected? Explain your answer.
+
+# The LOOCV error is minimum for the 2nd order polynomial function. This is expected since we saw in (b) that the relation between “x” and “y” is quadratic.
+
+```
+
+```{r}
+# (f) Now we use 5-fold CV for the model selection. Compute the CV errors that result from fitting the four models. Which model has the smallest CV error? Are the results consistent with LOOCV?
+
+library(boot)
+set.seed(1)
+kcv_error = rep(0,4)
+data <- data.frame(x, y)
+for (i in 1:4) {
+glm_fit = glm(y~poly(x,i), data=data)
+kcv_error[i] = cv.glm(data, glm_fit, K=5)$delta[1]
+}
+kcv_error
+
+# The 5-fold cross validation error is minimum for the 2nd order polynomial function. Also, the results are in consistent with LOOCV. 
+
+```
+
+```{r}
+# (g) Repeat (f) using 10-fold CV. Are the results the same as 5-fold CV?
+
+library(boot)
+set.seed(1)
+kcv_error = rep(0,4)
+data <- data.frame(x, y)
+for (i in 1:4) {
+glm_fit = glm(y~poly(x,i), data=data)
+kcv_error[i] = cv.glm(data, glm_fit, K=10)$delta[1]
+}
+kcv_error
+
+# There is not much of a difference compared to error obtained in (f).
+
+```
+
